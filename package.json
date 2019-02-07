@@ -1,0 +1,13 @@
+{
+  "name": "aemmobile-sdk",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "start": "node ./bin/www"
+  },
+  "keywords": [],
+  "author": "Saad Shams",
+  "license": "Private - Mirum Agency",
+  "dependencies": {
+  }
+}

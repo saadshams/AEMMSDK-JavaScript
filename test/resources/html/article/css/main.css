@@ -1,0 +1,45 @@
+/* line 1, ../../scss/main.scss */
+.columns {
+  margin-bottom: 30px;
+}
+
+/* line 5, ../../scss/main.scss */
+.reset {
+  margin: 0;
+}
+
+/* line 10, ../../scss/main.scss */
+.slideshow img {
+  width: 100%;
+}
+
+/* line 15, ../../scss/main.scss */
+#top-bar-dropdown {
+  background-color: #fafafa;
+  left: -10px;
+  opacity: 0.7;
+  position: absolute;
+  top: 45px;
+  z-index: 1;
+}
+/* line 23, ../../scss/main.scss */
+#top-bar-dropdown #logs {
+  display: block;
+  max-height: 300px;
+  overflow: scroll;
+}
+
+/* line 30, ../../scss/main.scss */
+#headerImage {
+  padding: 0;
+  max-width: 100%;
+}
+/* line 34, ../../scss/main.scss */
+#headerImage li {
+  max-height: 768px;
+}
+
+/* line 39, ../../scss/main.scss */
+#content {
+  height: 100%;
+}

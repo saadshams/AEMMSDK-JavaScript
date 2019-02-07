@@ -1,0 +1,208 @@
+https://gist.github.com/jpoehls/2232358
+http://stackoverflow.com/questions/8534462/nodejscluster-how-to-send-data-from-master-to-all-or-single-child-workers
+http://grokbase.com/t/gg/nodejs/139kde8dbd/best-practice-to-share-data-between-processes-cluster
+
+Article
+=======
+
+1. Create
+    version:    8619
+    contentUrl: 8619
+
+2. Upload Image
+       image metadata returned, no change in version or contentUrl
+
+3. Update
+    appending image data to metadata, version changes because of metadata change
+    version:    9381 (change)
+    contentUrl: 9381
+
+4. Seal
+    contents are moved to a new bucket changing contentUrl, and since metadata needs to be updated so metadata version changes too
+    version:    9659 (change)
+    contentUrl: 9639 (change)
+
+5. .article file uploaded
+    contents are moved to a new bucket, workflowId is returned to track the progress
+
+6. Get article metadata
+   Once upload is finished, content is moved to a new bucket changing contentUrl, and changes metadata to change the version as well.
+   version:     5411 (change)
+   contentUrl:  5391 (change)
+
+7. A second get article metadata
+    reveals the change in isPublishable property from false to true, hence bumping up the version
+   version:     5586 (change)
+   contentUrl:  5391
+
+8. Publish
+    first publish, article status is checked, index is 1 (status[1].eventType),
+    re-publish after preflight actually, article status is checked, index is different (status[2].eventType, the preflight entry changed the indexes.
+    It's best to check aspect. The values of aspects are "ingestion", "publishing" and "preview".
+
+9. Track progress
+
+10. get article metadata
+        after it's published, version and contentUrl stays the same.
+    version:    5586
+    contentUrl: 5391
+
+11. Preflight doesn't change any version or contentUrl.
+    Both article (status[2].eventType) and publication level (status[0].eventType statuses are checked for success
+
+
+Article Status
+=================================
+
+
+1. PreCheck - Status call on article before upload
+    a. ensure that subAspect of all statuses are null
+
+2. Upload Article -> workflowId is returned.
+
+   Status ->
+    aspect:     ingestion
+    eventType:  progress                                                    success
+    subAspect:  Error       Started     Received    Extracted   Validated   Uploaded    Sealed
+    numerator:  0           1           2               3           4           5           6
+    denominator:6           6           6               6           6           6           6
+
+    Started:    (1/6) Started the process to accept the zip file
+    Received:   (2/6) Received article zip file
+    Validated:  (4/6) Validated the manifest and compared it to the contents of the zip successfully
+    Uploaded:   (5/6) Uploaded the contents of the article to the Producer Service
+    Sealed:     (6/6) Sealed the contents of the article with the Producer Service
+
+    [ingestion]
+
+P.S. After Ingestion uploaded is when isPublishable property gets updated. See 7 above.
+
+3. Preflight
+
+    Status (new entry push - end of array)
+
+    aspect:     preview
+    eventType:  progress    success
+    subAspect:  null        null
+
+    numerator and denominator are null
+    [ingestion, preview]
+
+P.S. publication status is checked as well (new entry unshift - beginning of array [preview, publishing])
+
+4. Publish
+
+    Status (new entry push - end of array)
+
+    aspect:     publishing
+    eventType:  progress    success
+    subAspect:  null        null
+    numerator:  null
+    denominator:null
+
+    [ingestion, preview, publishing]
+
+
+Extra Attempts:
+
+A. Preflight
+
+    Status (Only publication was checked for it's status because article was published already I guess)
+    Like always publication status entry was unshifted into status array (beginning of the array)
+
+    aspect:     preview
+    eventType:  progress    success
+    [preview, publishing]
+
+B. Unpublish
+
+    Status of article was checked
+
+    one status call only, (no status was added or removed)
+    aspects remained to "ingestion" and "preview" only both with success eventType
+    [ingestion, preview]
+
+C. Publish
+
+    Status of article was checked
+
+    publishing aspect got added with from progress to success
+    [ingestion, preview, publishing]
+
+D. Preflight
+
+    Status of article was checked
+
+    publishing aspect was removed from statuses array,
+
+    aspect preview was the first item in the list, and eventType went from progress to success.
+
+    here it's concluded the order of statuses array can't be predicted, so a loop is required to iterate through types of aspects.
+    [preview, publishing]
+
+E. Unpublish
+
+   Status of article was checked
+
+   aspect: publishing aspect was removed, only ingestion and preview.
+   [ingestion, preview]
+
+F. Preflight
+
+   aspect: preview went from progress to success
+
+   [preview, publishing]
+
+G. Publish
+
+    aspect: publishing went from progress to success
+    [ingestion, preview, publishing]
+
+
+Point:
+    if aspect is publish, ingestion, preview -> normal routine
+
+    if aspect is unpublish
+    if call was article.unpublish, then set the aspect to unpublish and then check in status if aspect was unpublish,
+    then loop through entries and ensure the publish aspect is not there and then notify observer, otherwise do nothing.
+
+    if aspect is not defined, reject.
+
+
+Upload Limit: 978 files or above throws this message
+message: 'Unable to complete upload request; msgText=There are too many files in the article=ArticleUploadInfo [publicationId=192a7f47-84c1-445e-a615-ff82d92e2eaa, articleName=demo_0, articleVersion=1469821651498, articleId=demo_0;version=1469821651498, folioOrRendition=folio, workflowId=42c03afb-7b5e-41aa-830a-5824f67966f0, isPDF=false, horizontalSwipe=false, md5=null, length=19185861, jobConversionJobId=n',
+code: 'IN031',
+extraData: '42c03afb-7b5e-41aa-830a-5824f67966f0'
+
+
+
+Article Status
+/status/{publicationId}/article/{entityName}
+
+•	After article upload, It returns an array having a an item with aspect=ingestion.
+•	The subAspect varies from Error, Started, Received, Extracted, Validated, Uploaded and Sealed, each having eventType with possible values of progress, success or failure.
+•	The status array retains any additional operations after ingestion. For instance preview, publishing gets added to existing array. Unpublishing an article removes the aspect=publishing from the array.
+
+
+Publication Status
+/status/{publicationId}/publication/??????
+
+•	From the attached image, it’s confusing whether the trailing 0’s refer to publicationId or workflowId. I assume it’s {publicationId}, and I get two items with subAspect=preview and subAspect=publishing.
+•	subAspect=preview status shows different values on preflight.
+•	documentation refers to some extraData but I couldn’t see anything like that, irrespective of ongoing collection or article publishing in the background.
+•	Also mentioning about workflowId in #1 confuses with substituting the URL with workflowId and publication unlocked status. Thanks to support email that clarified to use workflow status mentioned below and it could use documentation updates if it’s not updated already.
+
+
+Workflow Status
+/status/{publicationId}/workflow/{workflowId}
+
+•	Used with publishing of fonts, collections, articles, publications
+•	Returns an item with status with variable values from RUNNING, COMPLETED and NOT_FOUND.
+
+
+/* upload Article rendition
+* •	The documentation refers to an entry aspect=audit, I’ve not come across any, please advise.
+*/
+
+
+

@@ -1,1 +1,3 @@
-# AEMMSDK-JavaScript
+# aemmsdk
+
+AEMMSDK for JavaScript nodeJS

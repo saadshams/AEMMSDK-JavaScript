@@ -1,0 +1,31 @@
+{
+    "3c68746d": "html",
+    "2f2a206c": "css",
+    "76617220": "js",
+    "7b0a2020": "json",
+    "3c646174": "xml",
+    "73616164": "txt",
+
+    "ffd8ffDB": "jpg",
+    "ffd8ffe0": "jpg",
+    "ffd8ffe1": "jpg",
+    "ffd8ffe2": "jpg",
+    "ffd8ffe3": "jpg",
+    "ffd8ffe8": "jpg",
+    "ffd8ffdb": "jpg",
+    "89504e47": "png",
+    "47494638": "gif",
+
+    "4f54544f": "otf",
+    "00010000": "ttf",
+    "774f4646": "woff",
+
+    "1A45564F": "eot",
+
+    "464C5601": "flv",
+
+    "25504446": "pdf",
+    "3c3f786d": "svg",
+
+    "fffbe204": "mp3"
+}
